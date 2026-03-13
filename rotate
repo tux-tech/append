@@ -1,0 +1,73 @@
+#!/bin/bash
+# Check if a filename was provided as an argument
+if [ -z "$1" ]; then
+    echo "Usage: $(basename "$0") filename.ext"
+    exit 1
+fi
+TARGET_FILE="$1"
+
+# --- Detect missing or empty file and prompt user ---
+if [ ! -f "$TARGET_FILE" ]; then
+    echo "Warning: '$TARGET_FILE' does not exist."
+    read -rp "Create it as a new file? [y/N]: " choice
+    case "$choice" in
+        [yY][eE][sS]|[yY])
+            echo "Proceeding to create '$TARGET_FILE'."
+            sudo nano "$TARGET_FILE"
+            echo "Done. $TARGET_FILE has been created."
+            ;;
+        *)
+            echo "Aborted."
+            exit 0
+            ;;
+    esac
+    exit 0
+elif [ ! -s "$TARGET_FILE" ]; then
+    echo "Warning: '$TARGET_FILE' is empty."
+    read -rp "Edit the empty file, or abort? [e=edit / A=abort]: " choice
+    case "$choice" in
+        [eE])
+            sudo nano "$TARGET_FILE"
+            echo "Done."
+            ;;
+        *)
+            echo "Aborted."
+            exit 0
+            ;;
+    esac
+    exit 0
+fi
+
+# --- File exists and has content: prompt rotate or read ---
+read -rp "Rotate '$TARGET_FILE'? [Enter=rotate / v=view]: " action
+case "$action" in
+    [vV])
+        # Open read-only in nano (view mode)
+        sudo nano -v "$TARGET_FILE"
+        exit 0
+        ;;
+    "")
+        # Rotate: archive current and open fresh (default)
+        ;;
+    *)
+        echo "Aborted."
+        exit 0
+        ;;
+esac
+
+# --- Find the highest numbered version ---
+highest_num=$(ls "${TARGET_FILE}"* 2>/dev/null | grep -oP "${TARGET_FILE}\K\d+" | sort -rn | head -n 1)
+
+if [ -z "$highest_num" ]; then
+    new_num=1
+else
+    new_num=$((highest_num + 1))
+fi
+
+# --- Archive the current file ---
+echo "Archiving $TARGET_FILE to $TARGET_FILE$new_num"
+sudo mv "$TARGET_FILE" "$TARGET_FILE$new_num"
+
+# --- Open fresh file for editing ---
+sudo nano "$TARGET_FILE"
+echo "Done. $TARGET_FILE updated (previous saved as $TARGET_FILE$new_num)."
