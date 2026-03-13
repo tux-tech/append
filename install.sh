@@ -61,8 +61,17 @@ if [ -f "$DEST" ]; then
     esac
 fi
 
-sudo cp "$TOOL_SRC" "$DEST"
-sudo chmod +x "$DEST"
+# Use sudo only if not already root
+if [ "$(id -u)" -eq 0 ]; then
+    cp "$TOOL_SRC" "$DEST" && chmod +x "$DEST"
+else
+    sudo cp "$TOOL_SRC" "$DEST" && sudo chmod +x "$DEST"
+fi
 
-echo "  ✓ Installed. Run it with:  $TOOL_NAME <filename>"
+if [ $? -eq 0 ]; then
+    echo "  ✓ Installed. Run it with:  $TOOL_NAME <filename>"
+else
+    echo "  ✗ Install failed. Try running as root: sudo ./install.sh"
+    exit 1
+fi
 echo ""
