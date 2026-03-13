@@ -6,6 +6,15 @@ if [ -z "$1" ]; then
 fi
 TARGET_FILE="$1"
 
+# Run commands with sudo only if not already root
+maybe_sudo() {
+    if [ "$(id -u)" -eq 0 ]; then
+        "$@"
+    else
+        sudo "$@"
+    fi
+}
+
 # --- Detect missing or empty file and prompt user ---
 if [ ! -f "$TARGET_FILE" ]; then
     echo "Warning: '$TARGET_FILE' does not exist."
@@ -13,7 +22,7 @@ if [ ! -f "$TARGET_FILE" ]; then
     case "$choice" in
         [yY][eE][sS]|[yY])
             echo "Proceeding to create '$TARGET_FILE'."
-            sudo nano "$TARGET_FILE"
+            maybe_sudo nano "$TARGET_FILE"
             echo "Done. $TARGET_FILE has been created."
             ;;
         *)
@@ -27,7 +36,7 @@ elif [ ! -s "$TARGET_FILE" ]; then
     read -rp "Edit the empty file, or abort? [e=edit / A=abort]: " choice
     case "$choice" in
         [eE])
-            sudo nano "$TARGET_FILE"
+            maybe_sudo nano "$TARGET_FILE"
             echo "Done."
             ;;
         *)
@@ -43,7 +52,7 @@ read -rp "Rotate '$TARGET_FILE'? [Enter=rotate / v=view]: " action
 case "$action" in
     [vV])
         # Open read-only in nano (view mode)
-        sudo nano -v "$TARGET_FILE"
+        maybe_sudo nano -v "$TARGET_FILE"
         exit 0
         ;;
     "")
@@ -66,8 +75,8 @@ fi
 
 # --- Archive the current file ---
 echo "Archiving $TARGET_FILE to $TARGET_FILE$new_num"
-sudo mv "$TARGET_FILE" "$TARGET_FILE$new_num"
+maybe_sudo mv "$TARGET_FILE" "$TARGET_FILE$new_num"
 
 # --- Open fresh file for editing ---
-sudo nano "$TARGET_FILE"
+maybe_sudo nano "$TARGET_FILE"
 echo "Done. $TARGET_FILE updated (previous saved as $TARGET_FILE$new_num)."
